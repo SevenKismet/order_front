@@ -6,7 +6,7 @@ function resolve(dir) {
   return path.join(__dirname, dir)
 }
 
-const name = defaultSettings.title || 'vue Admin Template' // page title
+const name = defaultSettings.title || '点餐系统' // page title
 
 // If your port is set to 80,
 // use administrator privileges to execute the command line.
@@ -36,7 +36,18 @@ module.exports = {
       warnings: false,
       errors: true
     },
-    before: require('./mock/mock-server.js')
+    // before: require('./mock/mock-server.js'), // mock data
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8089/',
+        changeOrigin: true,
+        // 将所有请求基于 https://buyer-dev.zicber.com/api的
+        // 都变成了 https://buyer-dev.zicber.com//api/
+        pathRewrite: {
+          '/api': '/api'
+        }
+      }
+    }
   },
   configureWebpack: {
     // provide the app's title in webpack's name field, so that
