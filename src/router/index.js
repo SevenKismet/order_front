@@ -89,7 +89,19 @@ export const constantRoutes = [
       }
     ]
   },
-
+  // 一级分类列表
+  {
+    path: '/firstCatlog',
+    component: Layout,
+    children: [
+      {
+        path: 'index',
+        name: 'FirstCatlog',
+        component: () => import('@/views/firstCatlog/index'),
+        meta: { title: '品类列表', icon: 'form' }
+      }
+    ]
+  },
   {
     path: '/nested',
     component: Layout,
