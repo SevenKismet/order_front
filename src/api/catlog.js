@@ -17,4 +17,11 @@ export function addFirstCatlog(data) {
     data
   })
 }
-
+// 修改一级分类信息
+export function modifyFirstCatlog(data) {
+  return request({
+    url: '/modifyFirstCatlog',
+    method: 'post',
+    data
+  })
+}

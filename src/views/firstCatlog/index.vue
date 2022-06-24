@@ -5,11 +5,24 @@
       title="添加品牌"
       :visible.sync="addDialogVisible"
       width="500px"
+      @closed="closeAddDialog"
     >
       <el-row>
         <el-form ref="brand" :rules="brandRule" :model="brandForm" label-width="100px">
           <el-form-item prop="name" label="品牌名称：">
             <el-input v-model="brandForm.name" size="small" clearable />
+          </el-form-item>
+          <el-form-item prop="name" label="品牌Logo：">
+            <el-upload
+              class="avatar-uploader"
+              :action="actionUrl"
+              :show-file-list="false"
+              :on-success="handleAvatarSuccess"
+              :before-upload="beforeAvatarUpload"
+            >
+              <img v-if="brandForm.logo" :src="brandForm.logo" class="avatar">
+              <i v-else class="el-icon-plus avatar-uploader-icon" />
+            </el-upload>
           </el-form-item>
           <el-form-item prop="type" label="类型：">
             <el-radio-group v-model="brandForm.type">
@@ -52,11 +65,22 @@
         <el-table-column
           prop="logo"
           label="品牌LOGO"
-          width="180"
-        />
+          width="100"
+        >
+          <template slot-scope="scope">
+            <div>
+              <span v-if="scope.row.logo">
+                <img :src="scope.row.logo" alt="" class="table_img">
+              </span>
+              <span v-else>
+                -
+              </span>
+            </div>
+          </template>
+        </el-table-column>
         <el-table-column
           prop="logo"
-          label="合资/国产"
+          label="合资/自主"
           width="190"
           :formatter="formateType"
         />
@@ -69,7 +93,18 @@
           prop="date"
           label="最后修改日期"
           width="180"
-        />
+        >
+          <template slot-scope="scope">
+            <div>
+              <span v-if="scope.row.updateTime">
+                {{ scope.row.updateTime | parseTime('{y}-{m}-{d} {h}:{i}:{s}') }}
+              </span>
+              <span v-else>
+                -
+              </span>
+            </div>
+          </template>
+        </el-table-column>
         <el-table-column
           prop="name"
           label="激活"
@@ -101,22 +136,24 @@
 </template>
 
 <script>
-import { getFirstCatlog, addFirstCatlog } from '@/api/catlog'
+import { getFirstCatlog, addFirstCatlog, modifyFirstCatlog } from '@/api/catlog'
 export default {
   data() {
     return {
       loading: false,
+      actionUrl: '/api/uploadres',
       tableList: [],
       brandForm: {
         name: '', // 名字
         logo: '', // 图片
-        type: '', // 国产-合资
+        type: '', // 自主-合资
         active: '', // 是否激活
-        enable: '' // 是否启用
+        enable: '', // 是否启用
+        fileList: []
       },
       typeList: [
         {
-          label: '国产',
+          label: '自主',
           id: 1
         },
         {
@@ -124,6 +161,7 @@ export default {
           id: 2
         }
       ],
+      isEdit: false,
       addDialogVisible: false,
       total: 0,
       pageNumber: 1,
@@ -159,23 +197,41 @@ export default {
     addBrand() {
       this.addDialogVisible = true
     },
-    // 确认新增
+    // 确认新增/修改
     conformAddBrand() {
       this.$refs.brand.validate((valid) => {
         if (valid) {
           const data = this.brandForm
           console.log(data)
-          addFirstCatlog(data).then((res) => {
-            if (res.code === 20000) {
-              this.getList()
-              this.$message({
-                message: '新增成功',
-                type: 'success'
-              })
-            }
-          })
+          if (this.isEdit) {
+            modifyFirstCatlog(data).then((res) => {
+              if (res.code === 20000) {
+                this.addDialogVisible = false
+                this.isEdit = false
+                this.getList()
+                this.$message({
+                  message: res.msg,
+                  type: 'success'
+                })
+              }
+            })
+          } else {
+            addFirstCatlog(data).then((res) => {
+              if (res.code === 20000) {
+                this.addDialogVisible = false
+                this.getList()
+                this.$message({
+                  message: '新增成功',
+                  type: 'success'
+                })
+              }
+            })
+          }
         }
       })
+    },
+    closeAddDialog() {
+      this.$refs.brand.resetFields()
     },
     serachList() {
       this.getList()
@@ -207,12 +263,38 @@ export default {
     },
     handleEdit(item) {
       console.log(item)
+      this.brandForm = JSON.parse(JSON.stringify(item))
+      this.addDialogVisible = true
+      this.isEdit = true
+      // this.editObj = item
+    },
+    // logo 上传的校验
+    beforeAvatarUpload(file) {
+      var fileTypes = ['jpg', 'jpeg', 'png', 'gif', 'PNG', 'JPG', 'JPEG']
+      const isLt2M = file.size / 1024 / 1024 < 5
+      var tempFileNames = file.name.split('.')
+      var fileType = tempFileNames.length ? tempFileNames[tempFileNames.length - 1] : ''
+      if (!fileTypes.includes(fileType)) {
+        this.$message.error('上传LOGO只能图片 格式!')
+      }
+      const isJPG = fileTypes.includes(fileType)
+      if (!isLt2M) {
+        this.$message.error('上传头像图片大小不能超过 2MB!')
+      }
+      return isJPG && isLt2M
+    },
+    // logo 上传
+    handleAvatarSuccess(res, file) {
+      if (res.code === 20000) {
+        this.brandForm.logo = 'https://' + res.data
+      }
+      console.log(res, file)
     }
   }
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .table_content{
   margin-top: 10px;
 }
@@ -223,5 +305,35 @@ export default {
 .line{
   text-align: center;
 }
+.table_img{
+  height: 40px;
+  width: auto;
+}
+
 </style>
+<style>
+ .avatar-uploader .el-upload {
+    border: 1px dashed #e5e5e5;
+    border-radius: 6px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+  }
+  .avatar-uploader .el-upload:hover {
+    border-color: #409EFF;
+  }
+  .avatar-uploader-icon {
+    font-size: 28px;
+    color: #8c939d;
+    width: 100px;
+    height: 100px;
+    line-height: 100px;
+    text-align: center;
+  }
+  .avatar {
+    width: 100px;
+    height: 100px;
+    display: block;
+  }
+  </style>
 

@@ -39,7 +39,7 @@ module.exports = {
     // before: require('./mock/mock-server.js'), // mock data
     proxy: {
       '/api': {
-        target: 'http://localhost:8089/',
+        target: 'http://localhost:8091/',
         changeOrigin: true,
         // 将所有请求基于 https://buyer-dev.zicber.com/api的
         // 都变成了 https://buyer-dev.zicber.com//api/
